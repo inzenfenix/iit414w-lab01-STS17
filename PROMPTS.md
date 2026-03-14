@@ -90,3 +90,220 @@ Validation: Implemented the suggested dataframe-based display and confirmed that
 Adaptations: Combined the output with additional tables for dataset overview, data types, and duplicate rows.
 
 Final Decision: Partially Used
+
+---
+
+## Heuristics:
+
+> Context: Wasn't sure were to start when thinking about a baseline and what heuristic could be a good choice for F1 races.
+
+> Prompt: 
+```
+ What heuristics are a good starting point to understanding the data given from FastF1 and jolpica API?
+ Give it to me as a list
+```
+
+> Relevant Output: 
+``` md
+1. The "Constructor Power" Heuristic
+
+The Rule: "If a driver belongs to a Top 3 team, they will finish in the Top 10 regardless of their grid position."
+
+    Domain Reasoning: In the hybrid era, cars from Red Bull, McLaren, and Ferrari rarely finish outside the points unless they DNF. This is great for catching drivers who had a bad qualifying session but "carved through the field" during the race.
+
+    Implementation: predict = 1 if team in ['Red Bull', 'McLaren', 'Ferrari'] else 0.
+
+2. The "Teammate Alpha" Heuristic
+
+The Rule: "If a driver qualified ahead of their teammate, they are more likely to finish in the Top 10."
+
+    Domain Reasoning: F1 is unique because your primary benchmark is your teammate in the same car. If a driver wins the intra-team qualifying battle, it usually indicates they have the better setup or "form" for that specific weekend.
+
+    Implementation: Compare session.results for both drivers of the same TeamName.
+
+3. The "Historical Track King" Heuristic
+
+The Rule: "If a driver finished in the Top 10 at this specific track last year, they will do it again."
+
+    Domain Reasoning: Certain drivers excel at specific types of tracks (e.g., "Street Circuit Specialists" like Perez or Leclerc). This heuristic uses temporal logic—using last year's data to predict this year's race.
+
+    Implementation: This is where you would use the Jolpica API to GET the 2024 results for the same circuit_id and map them to your 2025/2026 validation set.
+
+4. The "Points Momentum" Heuristic
+
+The Rule: "If the driver is currently in the Top 10 of the World Drivers' Championship (WDC) standings, predict a Top 10 finish."
+
+    Domain Reasoning: Consistency is the best predictor of future performance. If they have consistently scored points all season, they are statistically more likely to score in the next race than a driver at the bottom of the standings.
+
+    Implementation: Use fastf1.get_event_schedule() to find the previous race, then pull the standings up to that point.
+```
+
+> Validation: Used one of them that interested me thinking about the fact that we are working with the constructor team (first one)
+
+> Adaptations: Didn't change much since it run as intended.
+
+> Final Decision: Used
+
+---
+
+## Requirements.txt 2.0:
+
+> Context: Last time got a deduciton on score because of the usage of <= so i wanted to know which versions would be the best of each library for my current python version.
+
+> Prompt: 
+```
+ You said
+
+jupyterlab>=4.0
+
+ipykernel>=6.25
+
+numpy>=1.23
+
+pandas>=1.5
+
+scikit-learn>=1.2
+
+matplotlib>=3.6
+
+seaborn>=0.12
+
+fastf1>=3.0, can you upgrade this to their python 3.13.4 versions? and use "==" 
+```
+
+> Relevant Output: 
+``` bash
+jupyterlab==4.3.5
+ipykernel==6.29.5
+numpy==2.2.3
+pandas==2.2.3
+scikit-learn==1.6.1
+matplotlib==3.10.0
+seaborn==0.13.2
+fastf1==3.8.1
+```
+
+> Validation: Tried to run it with pip on a clean install of a new virtual environment and it worked as intended.
+
+> Adaptations: Didn't change much since it run as intended.
+
+> Final Decision: Used
+
+
+---
+
+## Starting point
+
+
+> Context: Wanted to get a starting point to understand the context of the task at hand
+
+> Prompt: 
+```
+ Baseline task
+```
+
+> Relevant Output: 
+``` bash
+To implement a baseline for F1 prediction using FastF1 and the Jolpica API, you need to focus on "Pre-Race" data. The most common heuristic for a Top 10 finish is Grid Position (Qualifying result), as starting near the front is the strongest predictor of finishing there.
+```
+
+``` python
+import fastf1
+import requests
+import pandas as pd
+
+# 1. Get 2024 Season Schedule via Jolpica (Example)
+response = requests.get("https://api.jolpica.com/ergast/f1/2024.json")
+data = response.json()
+races = data['MRData']['RaceTable']['Races']
+
+# 2. Heuristic Baseline Function
+def predict_top_10_heuristic(grid_position):
+    """Rule: If you start in the top 10, you finish in the top 10."""
+    return 1 if grid_position <= 10 else 0
+
+# 3. Collect Validation Data (e.g., last 3 races of 2024)
+validation_results = []
+race_numbers = [22, 23, 24] # Las Vegas, Qatar, Abu Dhabi
+
+for r in race_numbers:
+    session = fastf1.get_session(2024, r, 'R')
+    session.load(laps=False, telemetry=False)
+    results = session.results[['FullName', 'GridPosition', 'ClassifiedPosition']]
+    
+    for _, row in results.iterrows():
+        # Handle DNFs or unclassified if necessary
+        try:
+            actual_pos = int(row['ClassifiedPosition'])
+            actual_top_10 = 1 if actual_pos <= 10 else 0
+            predicted_top_10 = predict_top_10_heuristic(row['GridPosition'])
+            
+            validation_results.append({
+                'actual': actual_top_10,
+                'predicted': predicted_top_10
+            })
+        except ValueError:
+            continue # Skip non-classified drivers
+
+df_val = pd.DataFrame(validation_results)
+
+# 4. Compute Accuracy (Requirement 4.2)
+accuracy = (df_val['actual'] == df_val['predicted']).sum() / len(df_val)
+print(f"Heuristic Baseline Accuracy: {accuracy:.2%}")
+```
+
+> Validation: Tested the code, but modified it to the question got at the prior point (EDA Requirements)
+
+> Adaptations: 
+``` python
+# ── Cell 3: Domain Heruistic Baseline ───────────────────────────────────────────────
+# Check the rule that If a driver belongs to a Top 3 team, they will finish in the Top 10 regardless of their grid position
+
+import fastf1
+import pandas as pd
+
+
+def top_3_team_is_top_10_heuristic(driver):
+    top_teams = ['Red Bull Racing', 'McLaren', 'Ferrari']
+    return 1 if driver["TeamName"] in top_teams else 0
+
+print("------------")
+print("\nRule: If a driver belongs to a Top 3 team, they will finish in the Top 10 regardless of their grid position.\n")
+print("------------")
+
+validation_results = []
+data_df = pd.DataFrame({ "TeamName": [], "Classified Position": []})
+race_nums = [19, 20, 21, 22, 23, 24]
+
+for race_num in race_nums:
+    session = fastf1.get_session(2024, race_num, 'R')
+    session.load(laps=False, telemetry=False)
+    
+    results = session.results[['FullName', 'ClassifiedPosition', 'TeamName']]
+    
+    
+    for _, row in results.iterrows():
+        # Handle DNFs or unclassified if necessary
+        # Also get the data as 0s and 1s to calculate accuracy
+        data_df.loc[-1] = [row["TeamName"], row["ClassifiedPosition"]]
+        data_df.index = data_df.index + 1
+        
+        top_10_binary_converter = lambda x: 1 if x <= 10 else 0
+        try:
+            actual_pos = int(row['ClassifiedPosition'])
+            actual_top_10 = top_10_binary_converter(actual_pos)
+            predicted_top_10 = top_3_team_is_top_10_heuristic(row)
+
+            
+            validation_results.append({
+                'actual': actual_top_10,
+                'predicted': predicted_top_10
+
+            })
+        except (ValueError, TypeError):
+            continue # Skip non-classified drivers
+
+df_val = pd.DataFrame(validation_results)
+```
+
+> Final Decision: Partially Used
