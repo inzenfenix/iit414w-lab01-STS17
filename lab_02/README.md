@@ -1,4 +1,4 @@
-# Tomás Solano, Vicente Fuentes, InZenFenix, VichoIFA, IIT414W, 14-03-2026
+# Tomás Solano, InZenFenix, IIT414W, 22-03-2026
  
 ---
 
@@ -9,6 +9,13 @@
 
 ---
 
+---
+
+# Important information
+
+If you want to get the results from lab 1, go to that folder, also I added a new notebook called "baseline_plus.ipynb" with the Majority-Class model in there with the obtained data.
+
+---
 # Setup Instructions
 
 ## 1. Open a terminal
