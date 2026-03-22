@@ -171,3 +171,44 @@ print(f"Training samples: {len(X_train)}, Testing samples: {len(X_test)}")
 > Adaptations: Didn't change much since it run as intended.
 
 > Final Decision: Used
+
+
+## 4. Error Analysis:
+
+> Context: Wanted to get the data that the model got wrong
+
+> Prompt: 
+```
+How can I get back the data from my false positive and false negatives for Error Analysis?
+```
+
+> Relevant Output: 
+``` python
+# 1. Get predictions
+y_pred = model.predict(X_test)
+
+# 2. Reconstruct the test dataframe for analysis
+# We need to reach back to the 'full_df' to get Names and Rounds for the X_test indices
+error_analysis_df = full_df.loc[X_test.index].copy()
+error_analysis_df['Predicted'] = y_pred
+error_analysis_df['Actual'] = y_test.values
+
+# 3. Identify False Positives (Model said Top 10, but they failed)
+false_positives = error_analysis_df[(error_analysis_df['Predicted'] == 1) & (error_analysis_df['Actual'] == 0)]
+
+# 4. Identify False Negatives (Model said Bottom 10, but they got Top 10)
+false_negatives = error_analysis_df[(error_analysis_df['Predicted'] == 0) & (error_analysis_df['Actual'] == 1)]
+
+print("--- TOP FALSE POSITIVES (Predicted Top 10, but didn't make it) ---")
+print(false_positives[['Round', 'FullName', 'GridPosition', 'PosNumeric']].head(5))
+
+print("\n--- TOP FALSE NEGATIVES (Predicted Bottom 10, but made Top 10) ---")
+print(false_negatives[['Round', 'FullName', 'GridPosition', 'PosNumeric']].head(5))
+
+```
+
+> Validation: Simple code that grabs the used data and gets the index of the ones that got wrong.
+
+> Adaptations: Didn't change much since it run as intended.
+
+> Final Decision: Used
