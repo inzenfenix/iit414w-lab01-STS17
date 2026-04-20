@@ -1,3 +1,9 @@
+# Tomás Solano, InZenFenix, IIT414W, 20-04-2026
+
+# C3: Memo to Head of Strategy
+
+---
+
 # To: Head of Race Strategy
 
 ### From: Lead Data Scientist

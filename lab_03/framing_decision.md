@@ -1,3 +1,5 @@
+# Tomás Solano, InZenFenix, IIT414W, 20-04-2026
+
 # C2: Reasoning & Interpretation
 
 ## 1. The Business Framing: Why F1-Score?
