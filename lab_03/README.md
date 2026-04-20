@@ -3,8 +3,8 @@
 ---
 
 # System Information
-- OS: CachyOS **6.19.5-3**
-- Python **3.14.3**
+- OS: CachyOS **7.0.0-1**
+- Python **3.14.4**
 - pip **26.0.1**
 
 ---
